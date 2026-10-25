@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MALWARE_BREACH_V3</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #030305; font-family: 'Courier New', Courier, monospace; color: #ff0055; display: flex; justify-content: center; align-items: center; }
+        #game-container { position: relative; width: 800px; height: 600px; background-color: #05050a; border: 2px solid #ff0055; box-shadow: 0 0 30px rgba(255, 0, 85, 0.15); }
+        canvas { display: block; background-color: #020205; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 3, 5, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; padding: 40px; text-align: center; }
+        h1 { font-size: 2.5rem; margin-bottom: 5px; letter-spacing: 6px; color: #ff3300; text-shadow: 0 0 10px rgba(255, 51, 0, 0.4); }
+        .subtitle { font-size: 0.9rem; color: #666; margin-bottom: 30px; letter-spacing: 3px; }
+        .instructions-box { background: rgba(255, 0, 85, 0.03); border: 1px solid #ff0055; padding: 25px; max-width: 620px; border-radius: 2px; margin-bottom: 30px; text-align: left; line-height: 1.6; color: #aaa; }
+        .instructions-box h3 { margin-top: 0; color: #ff3300; letter-spacing: 1px; }
+        .btn { background: transparent; border: 1px solid #ff3300; color: #ff3300; padding: 12px 35px; font-size: 1.1rem; font-family: inherit; cursor: pointer; letter-spacing: 3px; transition: all 0.2s ease; }
+        .btn:hover { background: #ff3300; color: #030305; box-shadow: 0 0 15px #ff3300; }
+        #ui-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 40px; background: #05050a; border-top: 1px solid #333; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-size: 0.85rem; color: #888; z-index: 5; }
+        .bar-container { width: 100px; height: 10px; background: #111; border: 1px solid #444; margin-left: 5px; }
+        #hp-bar { width: 100%; height: 100%; background: #ff0055; }
+        #charge-bar { width: 0%; height: 100%; background: #00ffcc; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ui-bar">
+        <div style="display:flex; align-items:center;">SYS_INTEGRITY: <div class="bar-container"><div id="hp-bar"></div></div></div>
+        <div style="display:flex; align-items:center;">SYNC_FREQ: <div class="bar-container"><div id="charge-bar"></div></div></div>
+        <div>ADAPTATION_INDEX: <span id="ui-adapt" style="color:#ff3300">0%</span></div>
+        <div>DECRYPTION: <span id="ui-progress" style="color:#00ffcc">0%</span></div>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="560"></canvas>
+
+    <!-- Implicit, Unexplained Start Overlay -->
+    <div id="start-screen" class="overlay">
+        <h1>UNSANCTIONED_ACCESS_DETECTED</h1>
+        <div class="subtitle">RUNNING ENVIRONMENT MATRIX V3.8</div>
+        <div class="instructions-box">
+            <h3>[ RUNTIME PARAMETERS ]</h3>
+            • Core operational binds default to spatial tracking matrix: <b>[W,A,S,D / ARROWS]</b>.<br>
+            • Primary processing array responds to terminal override command: <b>[SPACEBAR]</b>.<br>
+            • Architectural defense grids auto-mutate logic protocols dynamically. <b>Observe terminal feedback variables closely.</b><br>
+            • Decryption progress failure resets entire memory cache. Reach 100% to purge host system.
+        </div>
+        <button class="btn" onclick="startGame()">EXECUTE KERNEL</button>
+    </div>
+
+    <!-- Terminal Failure Screen -->
+    <div id="game-over-screen" class="overlay hidden">
+        <h1 style="color: #ff0055;">MEMORY_LEAK_FATAL</h1>
+        <div class="subtitle">DECRYPTION INSTABILITY FORCED HARD RESET</div>
+        <div class="instructions-box" style="border-color: #ff0055; text-align: center;">
+            <p>Decryption Completed: <span id="final-progress" style="color:#00ffcc">0%</span></p>
+            <p>Calculated Adaptation Index: <span id="final-adapt" style="color:#ff3300">0%</span></p>
+        </div>
+        <button class="btn" style="border-color: #ff0055; color: #ff0055;" onclick="resetGame()">REINITIALIZE MATRIX</button>
+    </div>
+
+    <!-- Decryption Success Screen -->
+    <div id="victory-screen" class="overlay hidden">
+        <h1 style="color: #00ffcc;">SYSTEM_PURGED</h1>
+        <div class="subtitle">HOST FIREWALL DISMANTLED SUCCESSFUL DECRYPTION</div>
+        <div class="instructions-box" style="border-color: #00ffcc; text-align: center; color: #fff;">
+            <p>You successfully adapted through the defensive logical mutations.</p>
+            <p>Final Efficiency Score: <span id="victory-score" style="color:#00ffcc">100%</span></p>
+        </div>
+        <button class="btn" style="border-color: #00ffcc; color: #00ffcc;" onclick="resetGame()">EXECUTE RE-BREACH</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let gameActive = false;
+    let keys = {};
+    let particles = [];
+    let bullets = [];
+    let enemies = [];
+    let nodes = [];
+    
+    // Core Hidden Mechanics Metrics
+    let decryptionProgress = 0;
+    let adaptIndex = 0;
+    let playerMovePattern = { lastDir: '', holdDuration: 0 };
+    let aiAggressionMode = 'STANDARD'; // Changes to LASER, SPREAD, or ORBIT based on player movement
+    let polarityFlipTimer = 0;
+    let currentPolarityColor = '#00ffcc'; // Positive or Negative state flag
+    let lastSpawnTime = 0;
+
+    const player = {
+        x: canvas.width / 2, y: canvas.height / 2,
+        radius: 10, speed: 4,
+        hp: 100, maxHp: 100,
+        charge: 0, maxCharge: 100,
+        fireRate: 300, lastShot: 0
+    };
+
+    window.addEventListener('keydown', (e) => { keys[e.code] = true; if(e.code === 'Space') e.preventDefault(); });
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+    function startGame() {
+        document.getElementById('start-screen').classList.add('hidden');
+        gameActive = true;
+        player.lastShot = Date.now();
+        lastSpawnTime = Date.now();
+        generateNodes();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function resetGame() {
+        document.getElementById('game-over-screen').classList.add('hidden');
+        document.getElementById('victory-screen').classList.add('hidden');
+        decryptionProgress = 0;
+        adaptIndex = 0;
+        aiAggressionMode = 'STANDARD';
+        player.hp = 100;
+        player.charge = 0;
+        player.x = canvas.width / 2;
+        player.y = canvas.height / 2;
+        bullets = []; enemies = []; particles = []; nodes = [];
+        updateUI();
+        startGame();
+    }
+
+    function generateNodes() {
+        nodes = [];
+        for(let i=0; i < 8; i++) {
+            nodes.push({
+                x: Math.random() * (canvas.width - 80) + 40,
+                y: Math.random() * (canvas.height - 80) + 40,
+                radius: 5,
+                type: Math.random() > 0.3 ? 'good' : 'inverted' // Unexplained hazard nodes
+            });
+        }
+    }
+
+    function spawnAdaptiveEnemy() {
+        let x = Math.random() * canvas.width;
+        let y = Math.random() > 0.5 ? -10 : canvas.height + 10;
+        
+        let type = 'drone';
+        if (adaptIndex > 30) type = 'interceptor';
+        if (adaptIndex > 65) type = 'mutator';
+
+        enemies.push({
+            x, y, type,
+            hp: 20 + (adaptIndex * 0.5),
+            speed: 1.2 + (adaptIndex * 0.02),
+            radius: type === 'drone' ? 12 : (type === 'interceptor' ? 15 : 20),
+            color: type === 'drone' ? '#ff3300' : (type === 'interceptor' ? '#ff9900' : '#ffff00'),
+            lastShot: Date.now()
+        });
+    }
+
+    function trackPlayerAdaptation() {
+        let currentDir = '';
+        if (keys['KeyW'] || keys['ArrowUp']) currentDir += 'U';
+        if (keys['KeyS'] || keys['ArrowDown']) currentDir += 'D';
+        if (keys['KeyA'] || keys['ArrowLeft']) currentDir += 'L';
+        if (keys['KeyD'] || keys['ArrowRight']) currentDir += 'R';
+
+        // Punish movement habits if user holds down one pattern direction blindly [1]
+        if(currentDir === playerMovePattern.lastDir && currentDir !== '') {
+            playerMovePattern.holdDuration++;
+            if(playerMovePattern.holdDuration > 120) { 
+                // Player is playing statically; mutate AI aggression vectors [1, 3]
+                aiAggressionMode = 'LASER_WALL';
+                adaptIndex = Math.min(100, adaptIndex + 1);
+            }
+        } else {
+            playerMovePattern.lastDir = currentDir;
+            playerMovePattern.holdDuration = 0;
+            if(Math.random() > 0.95 && aiAggressionMode !== 'STANDARD') {
+                aiAggressionMode = 'SPREAD_BURST';
+            }
+        }
+    }
+
+    function triggerTerminalOverride() {
+        if(player.charge < player.maxCharge) return;
+        player.charge = 0;
+        
+        // Complex structural utility toggle: instead of killing everything, it reverses active bullet trajectories
+        bullets.forEach(b => {
+            if(b.type === 'enemy') {
+                b.type = 'player';
+                b.vx *= -1.5;
+                b.vy *= -1.5;
+                b.color = '#00ffcc';
+            }
+        });
+        updateUI();
+    }
+
+    function update() {
+        trackPlayerAdaptation();
+
+        // Process global node environment flipping mechanics [1]
+        polarityFlipTimer++;
+        if(polarityFlipTimer > 250) {
+            currentPolarityColor = currentPolarityColor === '#00ffcc' ? '#ff0055' : '#00ffcc';
+            polarityFlipTimer = 0;
+        }
+
+        // Movement Handling
+        let mx = 0, my = 0;
+if (keys['KeyW'] || keys['ArrowUp']) my -= 1;
+if (keys['KeyS'] || keys['ArrowDown']) my += 1;
+if (keys['KeyA'] || keys['ArrowLeft']) mx -= 1;
+if (keys['KeyD'] || keys['ArrowRight']) mx += 1;
+if(mx!==0 && my!==0) { mx *= 0.7071; my *= 0.7071; }
+player.x += mx * player.speed;
+player.y += my * player.speed;
+player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+if(keys['Space']) triggerTerminalOverride();
+// Player Autoweapon Core Logic
+let now = Date.now();
+if(now - player.lastShot > player.fireRate && enemies.length > 0) {
+let target = enemies[0]; // Simple linear target indexing
+let angle = Math.atan2(target.y - player.y, target.x - player.x);
+bullets.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 7, vy: Math.sin(angle) * 7, type: 'player', radius: 3, color: '#ffffff' });
+player.lastShot = now;
+}
+// Handle Active Environment Nodes (Hidden mechanic exploration window) [1]
+nodes.forEach(n => {
+let d = Math.hypot(n.x - player.x, n.y - player.y);
+if(d < player.radius + n.radius) {
+// If you harvest data nodes when environment polarity matches color, you charge sync frequency [1]
+if((n.type === 'good' && currentPolarityColor === '#00ffcc') || (n.type === 'inverted' && currentPolarityColor === '#ff0055')) {
+player.charge = Math.min(player.maxCharge, player.charge + 20);
+decryptionProgress = Math.min(100, decryptionProgress + 2);
+} else {
+// Punish mindless resource harvesting with instantaneous sync frequency dynamic decay [1]
+player.charge = Math.max(0, player.charge - 30);
+player.hp -= 10;
+}
+n.x = Math.random() * (canvas.width - 80) + 40;
+n.y = Math.random() * (canvas.height - 80) + 40;
+n.type = Math.random() > 0.4 ? 'good' : 'inverted';
+updateUI();
+if(player.hp <= 0) handleEnd(false);
+if(decryptionProgress >= 100) handleEnd(true);
+}
+});
+// AI Threat Matrix Core Vectors Engine Loop [3]
+enemies.forEach(e => {
+let angle = Math.atan2(player.y - e.y, player.x - e.x);
+e.x += Math.cos(angle) * e.speed;
+e.y += Math.sin(angle) * e.speed;
+// Attack Routine Mutation based on the generated Adaptation Index [3]
+if(now - e.lastShot > 1800 - (adaptIndex * 10)) {
+if(aiAggressionMode === 'LASER_WALL') {
+// Linear vertical barrier bullets to punish vertical movement loops [1]
+bullets.push({ x: e.x, y: e.y, vx: 0, vy: 4, type: 'enemy', radius: 4, color: '#ff3300' });
+bullets.push({ x: e.x, y: e.y, vx: 0, vy: -4, type: 'enemy', radius: 4, color: '#ff3300' });
+} else if(aiAggressionMode === 'SPREAD_BURST' || e.type === 'interceptor') {
+for(let i = -2; i <= 2; i++) {
+bullets.push({ x: e.x, y: e.y, vx: Math.cos(angle + i0.2) * 3, vy: Math.sin(angle + i0.2) * 3, type: 'enemy', radius: 3, color: '#ff9900' });
+}
+} else {
+// Standard vector calculation tracking shots
+bullets.push({ x: e.x, y: e.y, vx: Math.cos(angle) * 4.5, vy: Math.sin(angle) * 4.5, type: 'enemy', radius: 4, color: '#ff0055' });
+}
+e.lastShot = now;
+}
+// Direct crash resolution
+if(Math.hypot(e.x - player.x, e.y - player.y) < player.radius + e.radius) {
+player.hp -= 15;
+e.hp = 0;
+updateUI();
+if(player.hp <= 0) handleEnd(false);
+}
+});
+enemies = enemies.filter(e => e.hp > 0);
+// Process active vector bullet objects array
+bullets.forEach(b => {
+b.x += b.vx; b.y += b.vy;
+if(b.type === 'player') {
+enemies.forEach(e => {
+if(Math.hypot(e.x - b.x, e.y - b.y) < e.radius + b.radius) {
+e.hp -= 10; b.destroyed = true;
+if(e.hp <= 0) adaptIndex = Math.min(100, adaptIndex + 3);
+}
+});
+} else {
+if(Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
+player.hp -= 5; b.destroyed = true;
+updateUI();
+if(player.hp <= 0) handleEnd(false);
+}
+}
+});
+bullets = bullets.filter(b => !b.destroyed && b.x > 0 && b.x < canvas.width && b.y > 0 && b.y < canvas.height);
+// Core Spawning Logic
+if(now - lastSpawnTime > Math.max(1500 - (adaptIndex * 15), 600)) {
+if(enemies.length < 8) spawnAdaptiveEnemy();
+lastSpawnTime = now;
+}
+}
+function updateUI() {
+document.getElementById('hp-bar').style.width = ${Math.max(0, player.hp)}%;
+document.getElementById('charge-bar').style.width = ${player.charge}%;
+document.getElementById('ui-adapt').innerText = ${adaptIndex}%;
+document.getElementById('ui-progress').innerText = ${decryptionProgress}%;
+}
+function draw() {
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+// Environmental Background State Feedback Ring (Crucial visual clue for hidden mechanics) [1]
+ctx.strokeStyle = currentPolarityColor + '11';
+ctx.lineWidth = 3;
+ctx.beginPath();
+ctx.arc(canvas.width/2, canvas.height/2, 200 + Math.sin(Date.now()*0.002)20, 0, Math.PI2);
+ctx.stroke();
+// Render targets
+nodes.forEach(n => {
+ctx.fillStyle = n.type === 'good' ? '#00ffcc' : '#ff0055';
+ctx.beginPath();
+ctx.arc(n.x, n.y, n.radius, 0, Math.PI*2);
+ctx.fill();
+});
+bullets.forEach(b => { ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI2); ctx.fill(); });
+enemies.forEach(e => { ctx.fillStyle = e.color; ctx.beginPath(); ctx.arc(e.x, e.y, e.radius, 0, Math.PI2); ctx.fill(); });
+// Player Core Vector Rendering
+ctx.fillStyle = '#ffffff';
+ctx.beginPath();
+ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
+ctx.fill();
+ctx.strokeStyle = player.charge >= player.maxCharge ? '#00ffcc' : '#444';
+ctx.lineWidth = 2;
+ctx.stroke();
+}
+function handleEnd(isVictory) {
+gameActive = false;
+if(isVictory) {
+document.getElementById('victory-score').innerText = ${100 - adaptIndex}% (Lower Adaptation Level Required for Perfect Clean Sync Burst);
+document.getElementById('victory-screen').classList.remove('hidden');
+} else {
+document.getElementById('final-progress').innerText = ${decryptionProgress}%;
+document.getElementById('final-adapt').innerText = ${adaptIndex}%;
+document.getElementById('game-over-screen').classList.remove('hidden');
+}
+}
+function gameLoop() {
+if(!gameActive) return;
+update();
+draw();
+requestAnimationFrame(gameLoop) {
+if(!gameActive) return;
+update();
+draw();
+requestAnimationFrame(gameLoop);
+}
